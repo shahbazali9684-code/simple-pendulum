@@ -5,70 +5,116 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Week-by-Week Fruit Plant Simulation</title>
     <style>
-        body { font-family: sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; background-color: #f4f4f9; }
-        .card { background: white; padding: 20px; margin-bottom: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        h1, h2 { color: #2c3e50; }
-        .status-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        .metric { margin-bottom: 10px; }
-        .metric label { font-weight: bold; display: block; }
-        .controls { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
-        button { padding: 10px 20px; cursor: pointer; background-color: #27ae60; color: white; border: none; border-radius: 4px; font-size: 16px; }
-        button:hover { background-color: #2ecc71; }
-        button:disabled { background-color: #95a5a6; cursor: not-allowed; }
-        input[type="number"] { padding: 8px; width: 60px; }
-        #log { height: 300px; overflow-y: auto; background: #333; color: #eee; padding: 10px; font-family: monospace; border-radius: 4px; }
-        .event-warning { color: #ffeb3b; font-weight: bold; }
-        .event-bad { color: #ff5252; font-weight: bold; }
-        .event-good { color: #69f0ae; font-weight: bold; }
-        .hidden { display: none; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 900px; margin: 0 auto; padding: 20px; background-color: #e8f5e9; color: #333; }
+        .container { display: grid; grid-template-columns: 1fr 300px; gap: 20px; }
+        .card { background: white; padding: 20px; margin-bottom: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid #c8e6c9; }
+        h1, h2 { color: #2e7d32; margin-top: 0; }
+
+        /* Visuals */
+        .plant-visual { height: 200px; background: #e0f2f1; border-radius: 8px; display: flex; align-items: flex-end; justify-content: center; overflow: hidden; position: relative; }
+        .plant-stem { background: #4caf50; width: 10px; transition: height 0.5s; border-radius: 5px 5px 0 0; position: relative; }
+        .plant-leaf { position: absolute; font-size: 24px; }
+        .plant-fruit { position: absolute; font-size: 20px; z-index: 2; }
+        .soil-layer { height: 20px; background: #795548; width: 100%; position: absolute; bottom: 0; }
+
+        /* Metrics */
+        .metric-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px dashed #eee; }
+        .metric-val { font-weight: bold; color: #1b5e20; }
+
+        /* Controls */
+        .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        button { padding: 12px; cursor: pointer; background-color: #43a047; color: white; border: none; border-radius: 6px; font-weight: bold; transition: background 0.2s; }
+        button:hover { background-color: #2e7d32; }
+        button:disabled { background-color: #bdbdbd; cursor: not-allowed; }
+        button.action-bad { background-color: #ef5350; }
+        button.action-bad:hover { background-color: #c62828; }
+
+        /* Log */
+        #log { height: 400px; overflow-y: auto; background: #263238; color: #eceff1; padding: 15px; font-family: monospace; border-radius: 8px; font-size: 14px; }
+        .log-week { border-bottom: 1px solid #546e7a; padding-bottom: 5px; margin-bottom: 5px; color: #80cbc4; }
+        .event-warning { color: #ffca28; }
+        .event-bad { color: #ff8a80; }
+        .event-good { color: #a5d6a7; }
+
+        /* Overlay */
+        #overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 100; }
+        .modal { background: white; padding: 40px; border-radius: 12px; text-align: center; max-width: 500px; }
+        .hidden { display: none !important; }
+
+        .weather-icon { font-size: 40px; text-align: center; margin-bottom: 10px; }
     </style>
 </head>
 <body>
 
+    <div id="overlay">
+        <div class="modal">
+            <h1>🍅 Master Gardener Sim</h1>
+            <p>Welcome! Your goal is to grow a healthy Tomato plant from seed to harvest.</p>
+            <p><strong>Rules:</strong></p>
+            <ul style="text-align: left;">
+                <li>Water carefully (too much causes rot, too little stresses).</li>
+                <li>Fertilize to boost growth (don't burn the roots!).</li>
+                <li>Prune foliage to reduce disease risk.</li>
+                <li>Watch out for pests and weather events!</li>
+            </ul>
+            <button onclick="startGame()">Start Season</button>
+        </div>
+    </div>
+
     <h1>🌱 Fruit Plant Lifecycle Sim</h1>
-    <p>Guide your tomato plant from seed to harvest. Watch the weather and pests!</p>
 
-    <div class="card">
-        <div class="status-grid">
-            <div>
-                <h2>Plant Status</h2>
-                <div class="metric"><label>Stage:</label> <span id="plant-stage">0 (Seed)</span></div>
-                <div class="metric"><label>Health:</label> <span id="plant-health">100%</span></div>
-                <div class="metric"><label>Size:</label> <span id="plant-size">0.0 cm</span></div>
-                <div class="metric"><label>Biomass:</label> <span id="plant-biomass">0.0</span></div>
-                <div class="metric"><label>Ripe Fruit:</label> <span id="plant-fruit">0</span></div>
+    <div class="container">
+        <!-- LEFT COLUMN: Visuals & Log -->
+        <div>
+            <div class="card">
+                <h2>Plant Visual</h2>
+                <div class="plant-visual" id="visual-container">
+                    <div class="soil-layer"></div>
+                    <div class="plant-stem" id="visual-stem" style="height: 0px;"></div>
+                </div>
+                <div style="margin-top: 10px; text-align: center; font-style: italic;" id="visual-caption">Seed in soil</div>
             </div>
-            <div>
-                <h2>Environment</h2>
-                <div class="metric"><label>Week:</label> <span id="sim-week">0</span></div>
-                <div class="metric"><label>Location:</label> <span id="env-loc">Indoors</span></div>
-                <div class="metric"><label>Soil Moisture:</label> <span id="env-soil">80%</span></div>
-                <div class="metric"><label>Avg Temp:</label> <span id="env-temp">--</span></div>
+
+            <div class="card">
+                <h2>Season Log</h2>
+                <div id="log"></div>
             </div>
         </div>
-    </div>
 
-    <div class="card">
-        <h2>Actions</h2>
-        <div class="controls">
-            <div>
-                <label for="water-in">Water (in):</label>
-                <input type="number" id="water-in" value="1.0" step="0.1" min="0">
+        <!-- RIGHT COLUMN: Stats & Controls -->
+        <div>
+            <div class="card">
+                <div class="weather-icon" id="weather-icon">☀️</div>
+                <div class="metric-row"><span>Week</span> <span class="metric-val" id="sim-week">0</span></div>
+                <div class="metric-row"><span>Location</span> <span class="metric-val" id="env-loc">Indoors</span></div>
+                <div class="metric-row"><span>Temp (Avg)</span> <span class="metric-val" id="env-temp">--</span></div>
+                <div class="metric-row"><span>Soil Moisture</span> <span class="metric-val" id="env-soil">80%</span></div>
             </div>
-            <div>
-                <label>
-                    <input type="checkbox" id="scout-check" checked> Scout for Pests
-                </label>
+
+            <div class="card">
+                <h2>Plant Vitals</h2>
+                <div class="metric-row"><span>Stage</span> <span class="metric-val" id="plant-stage">0 (Seed)</span></div>
+                <div class="metric-row"><span>Health</span> <span class="metric-val" id="plant-health">100%</span></div>
+                <div class="metric-row"><span>Height</span> <span class="metric-val" id="plant-size">0.0 cm</span></div>
+                <div class="metric-row"><span>Nitrogen</span> <span class="metric-val" id="plant-nitro">Low</span></div>
+                <div class="metric-row"><span>Ripe Fruit</span> <span class="metric-val" id="plant-fruit">0</span></div>
             </div>
-            <button id="btn-run" onclick="sim.runWeek()">Run Week</button>
-            <button id="btn-transplant" class="hidden" onclick="sim.doTransplant()">Transplant Outdoors</button>
-            <button id="btn-harvest" class="hidden" onclick="sim.doHarvest()">Harvest Fruit</button>
+
+            <div class="card">
+                <h2>Actions</h2>
+                <div style="margin-bottom: 10px;">
+                    <label>Water (inches): <input type="number" id="water-in" value="1.0" step="0.5" style="width: 50px;"></label>
+                </div>
+                <div class="controls">
+                    <button id="btn-run" onclick="sim.runWeek()">📅 Next Week</button>
+                    <button id="btn-scout" onclick="toggleScout()" style="background:#5e35b1;">🔍 Scout: ON</button>
+                    <button id="btn-fert" onclick="sim.doFertilize()">🧪 Fertilize</button>
+                    <button id="btn-prune" onclick="sim.doPrune()" class="action-bad">✂️ Prune</button>
+                    <button id="btn-transplant" class="hidden" onclick="sim.doTransplant()">🏡 Transplant</button>
+                    <button id="btn-harvest" class="hidden" onclick="sim.doHarvest()">🧺 Harvest</button>
+                </div>
+            </div>
         </div>
-    </div>
-
-    <div class="card">
-        <h2>Weekly Log</h2>
-        <div id="log"></div>
     </div>
 
 <script>
@@ -105,22 +151,23 @@ class DailyWeather {
     avgTemp() { return (this.t_min + this.t_max) / 2; }
 
     toString() {
-        return `T:${this.t_min.toFixed(1)}-${this.t_max.toFixed(1)}F | Rain:${this.precip.toFixed(2)}" | Hum:${this.humidity.toFixed(0)}%`;
+        let condition = "Sunny";
+        if (this.precip > 0.1) condition = "Rainy";
+        else if (this.solar_rad < 0.5) condition = "Cloudy";
+        return `${condition} (T:${this.avgTemp().toFixed(0)}F, Rain:${this.precip.toFixed(1)}")`;
     }
 }
 
 class Environment {
     constructor() {
-        this.day_of_year = 60; // Start March 1st approx
+        this.day_of_year = 60;
         this.soil_moisture = 0.8;
         this.is_indoors = true;
         this.indoor_temp_target = 75.0;
-        this.indoor_humidity = 50.0;
         this.last_weather = null;
     }
 
     generateDailyWeather() {
-        // Seasonal Curve
         const season_offset = -Math.cos((this.day_of_year - 20) * 2 * Math.PI / 365);
         const avg_seasonal_temp = 55 + 30 * season_offset;
 
@@ -150,18 +197,12 @@ class Environment {
         this.last_weather = outdoor;
 
         if (this.is_indoors) {
-            return new DailyWeather(
-                this.indoor_temp_target - 2,
-                this.indoor_temp_target + 2,
-                this.indoor_humidity,
-                0.8, 0, 0
-            );
+            return new DailyWeather(73, 77, 50, 0.8, 0, 0);
         }
         return outdoor;
     }
 
     updateSoil(weather, irrigation, plant_usage) {
-        // 1 unit moisture = ~3 inches water capacity
         const inflow = (irrigation + (this.is_indoors ? 0 : weather.precip)) / 3.0;
         const evap = (weather.t_max / 100.0) * weather.solar_rad * 0.05;
         const trans = plant_usage * 0.1;
@@ -178,9 +219,7 @@ class Plant {
     constructor() {
         const config = SPECIES_DATA["Tomato"];
         this.base_temp = config.base_temp;
-        this.opt_temp = config.opt_temp;
         this.thresholds = config.stage_thresholds;
-        this.max_leaf_area = config.max_leaf_area;
 
         this.bbch = 0;
         this.gdd = 0;
@@ -189,11 +228,14 @@ class Plant {
         this.leaf_area = 0.0;
         this.ripe_fruit = 0;
         this.fruit_set = 0;
-        this.biomass = 0.0;
+        this.nitrogen = 0.5; // 0.0 to 1.0 (Optimal ~0.7)
     }
 
     updateDaily(weather, soil) {
         if (this.health <= 0) return;
+
+        // Nitrogen decay
+        this.nitrogen *= 0.99;
 
         // GDD
         let avg = weather.avgTemp();
@@ -203,7 +245,6 @@ class Plant {
 
         // Stage Logic
         let current = this.bbch;
-        // Sort keys numerically
         const keys = Object.keys(this.thresholds).map(Number).sort((a,b)=>a-b);
         for (let t of keys) {
             if (this.gdd >= this.thresholds[t]) {
@@ -211,38 +252,40 @@ class Plant {
             }
         }
 
-        // Stress
+        // Stress Logic
         let stress = 0;
-        if (soil < 0.3) stress = (0.3 - soil) / 0.3;
-        else if (soil > 0.95) stress = (soil - 0.95) / 0.05;
+        if (soil < 0.3) stress += (0.3 - soil) / 0.3; // Drought
+        else if (soil > 0.95) stress += (soil - 0.95) / 0.05; // Waterlog
 
-        if (stress > 0) this.health -= (stress * 0.01);
+        // Nitrogen Stress (Too low or Too high)
+        if (this.nitrogen < 0.3) stress += 0.2;
+        if (this.nitrogen > 0.9) stress += 0.5; // Burn
+
+        if (stress > 0) this.health -= (stress * 0.015);
         else this.health = Math.min(1.0, this.health + 0.005);
 
         // Growth
-        const growth = day_gdd * weather.solar_rad * (1.0 - stress) * this.health;
+        // N boosts growth but high N delays fruit
+        const n_factor = Math.min(1.0, this.nitrogen * 1.5);
+        const growth = day_gdd * weather.solar_rad * (1.0 - stress) * this.health * n_factor;
 
         if (this.bbch < 10) {
             // Germination
         } else if (this.bbch < 50) {
             this.leaf_area += growth * 0.5;
             this.height += growth * 0.1;
-            this.biomass += growth;
         } else if (this.bbch >= 60) {
             if (this.bbch < 70) {
                 // Flowering
             } else {
                 // Fruiting
-                this.biomass += growth;
                 if (this.bbch >= 81 && this.fruit_set > 0) {
-                     // Ripening
                      const new_ripe = Math.floor(growth * 0.05);
                      if (new_ripe > 0) {
                          this.ripe_fruit += new_ripe;
-                         this.fruit_set -= new_ripe; // simplified bucket
+                         this.fruit_set -= new_ripe;
                      }
                 } else if (this.bbch >= 71) {
-                    // Fruit set accumulation proxy
                     this.fruit_set += (growth * 0.02);
                 }
             }
@@ -294,8 +337,16 @@ class PestManager {
             }
         }
 
-        if (this.diseases.has("Early Blight")) {
-            plant.health -= 0.005;
+        // Random Event: Heat Wave
+        if (weather.t_max > 95 && r < 0.05) {
+            events.push("Heat Wave! Growth stalled.");
+            plant.health -= 0.05;
+        }
+
+        // Random Event: Beneficial Insects
+        if (plant.bbch >= 60 && r < 0.02) {
+             events.push("Ladybugs arrived! Pest pressure down.");
+             plant.health = Math.min(1.0, plant.health + 0.1);
         }
 
         return events;
@@ -309,15 +360,13 @@ class Simulation {
         this.pests = new PestManager();
         this.week = 0;
         this.gameOver = false;
-
-        this.log("Simulation Started. Plant is a seed indoors.");
-        this.updateUI();
+        this.scoutEnabled = true;
     }
 
     log(msg, type="normal") {
         const div = document.getElementById("log");
         const entry = document.createElement("div");
-        entry.textContent = `[W${this.week}] ${msg}`;
+        entry.textContent = msg;
         if (type === "bad") entry.className = "event-bad";
         if (type === "good") entry.className = "event-good";
         if (type === "warning") entry.className = "event-warning";
@@ -325,42 +374,16 @@ class Simulation {
         div.scrollTop = div.scrollHeight;
     }
 
-    updateUI() {
-        document.getElementById("plant-stage").textContent = `${this.plant.bbch} (${this.plant.getStageName()})`;
-        document.getElementById("plant-health").textContent = (this.plant.health * 100).toFixed(0) + "%";
-        document.getElementById("plant-size").textContent = this.plant.height.toFixed(1) + " cm";
-        document.getElementById("plant-biomass").textContent = this.plant.biomass.toFixed(1);
-        document.getElementById("plant-fruit").textContent = this.plant.ripe_fruit;
-
-        document.getElementById("sim-week").textContent = this.week;
-        document.getElementById("env-loc").textContent = this.env.is_indoors ? "Indoors" : "Outdoors";
-        document.getElementById("env-soil").textContent = (this.env.soil_moisture * 100).toFixed(0) + "%";
-
-        if (this.env.last_weather) {
-             document.getElementById("env-temp").textContent = this.env.last_weather.avgTemp().toFixed(1) + "F";
-        }
-
-        // Button States
-        document.getElementById("btn-transplant").classList.toggle("hidden", !(this.env.is_indoors && this.plant.bbch >= 10));
-        document.getElementById("btn-harvest").classList.toggle("hidden", this.plant.ripe_fruit <= 0);
-
-        if (this.plant.health <= 0 || this.week > 24) {
-            this.gameOver = true;
-            document.getElementById("btn-run").disabled = true;
-            this.log("GAME OVER", "bad");
-        }
-    }
-
     runWeek() {
         if (this.gameOver) return;
 
         const waterInput = parseFloat(document.getElementById("water-in").value) || 0;
-        const doScout = document.getElementById("scout-check").checked;
+        const waterSched = [waterInput*0.5, 0, 0, waterInput*0.5, 0, 0, 0];
 
-        // Water schedule: Day 0 and Day 3
-        const waterSched = [0,0,0,0,0,0,0];
-        waterSched[0] = waterInput * 0.5;
-        waterSched[3] = waterInput * 0.5;
+        const weekDiv = document.createElement("div");
+        weekDiv.className = "log-week";
+        weekDiv.textContent = `Week ${this.week + 1} Summary`;
+        document.getElementById("log").appendChild(weekDiv);
 
         let phenologyChanged = false;
 
@@ -377,8 +400,8 @@ class Simulation {
             const events = this.pests.checkDaily(this.plant, w, this.env.soil_moisture);
             if (events.length > 0) {
                  events.forEach(e => {
-                     if (doScout) this.log(`Day ${d+1}: ${e}`, "bad");
-                     else this.log(`Day ${d+1}: Something looks wrong...`, "warning");
+                     if (this.scoutEnabled) this.log(`Day ${d+1}: ${e}`, "bad");
+                     else if (Math.random() < 0.3) this.log(`Day ${d+1}: Plant looks unhappy...`, "warning");
                  });
             }
 
@@ -386,8 +409,8 @@ class Simulation {
         }
 
         this.week++;
-        this.log(`Week ${this.week} complete. Soil: ${(this.env.soil_moisture*100).toFixed(0)}%`);
-        if (phenologyChanged) this.log(`Plant advanced to Stage ${this.plant.bbch} (${this.plant.getStageName()})`, "good");
+        this.log(`Soil: ${(this.env.soil_moisture*100).toFixed(0)}% | Weather: ${this.env.last_weather.toString()}`);
+        if (phenologyChanged) this.log(`Reached Stage ${this.plant.bbch}: ${this.plant.getStageName()}`, "good");
 
         this.updateUI();
     }
@@ -405,9 +428,110 @@ class Simulation {
         this.log(`Harvested ${count} fruits!`, "good");
         this.updateUI();
     }
+
+    doFertilize() {
+        this.plant.nitrogen = Math.min(1.0, this.plant.nitrogen + 0.4);
+        this.log("Fertilized plant. Nitrogen up.", "good");
+        this.updateUI();
+    }
+
+    doPrune() {
+        this.plant.leaf_area *= 0.8;
+        this.log("Pruned leaves. Airflow improved.", "warning");
+        // Could remove disease here
+        if (this.pests.diseases.has("Early Blight")) {
+             if(Math.random() < 0.5) {
+                 this.pests.diseases.delete("Early Blight");
+                 this.log("Pruning removed Early Blight!", "good");
+             }
+        }
+        this.updateUI();
+    }
+
+    updateUI() {
+        // Stats
+        document.getElementById("plant-stage").textContent = `${this.plant.bbch} (${this.plant.getStageName()})`;
+        document.getElementById("plant-health").textContent = (this.plant.health * 100).toFixed(0) + "%";
+        document.getElementById("plant-size").textContent = this.plant.height.toFixed(1) + " cm";
+        document.getElementById("plant-fruit").textContent = this.plant.ripe_fruit;
+
+        let n_status = "Low";
+        if (this.plant.nitrogen > 0.8) n_status = "High (Burn Risk)";
+        else if (this.plant.nitrogen > 0.4) n_status = "Good";
+        document.getElementById("plant-nitro").textContent = n_status;
+
+        document.getElementById("sim-week").textContent = this.week;
+        document.getElementById("env-loc").textContent = this.env.is_indoors ? "Indoors" : "Outdoors";
+        document.getElementById("env-soil").textContent = (this.env.soil_moisture * 100).toFixed(0) + "%";
+
+        if (this.env.last_weather) {
+             document.getElementById("env-temp").textContent = this.env.last_weather.avgTemp().toFixed(1) + "F";
+
+             let icon = "☁️";
+             if (this.env.last_weather.precip > 0.1) icon = "🌧️";
+             else if (this.env.last_weather.solar_rad > 0.7) icon = "☀️";
+             document.getElementById("weather-icon").textContent = icon;
+        }
+
+        // Buttons
+        document.getElementById("btn-transplant").classList.toggle("hidden", !(this.env.is_indoors && this.plant.bbch >= 10));
+        document.getElementById("btn-harvest").classList.toggle("hidden", this.plant.ripe_fruit <= 0);
+
+        // Visuals
+        const stem = document.getElementById("visual-stem");
+        // Max height visual ~180px
+        const visHeight = Math.min(180, this.plant.height * 2);
+        stem.style.height = visHeight + "px";
+
+        // Dynamic leaves/fruit based on stage (simplified)
+        stem.innerHTML = ""; // clear
+        if (this.plant.bbch >= 10) {
+            // Add leaves
+            const l1 = document.createElement("div"); l1.className="plant-leaf"; l1.textContent="🍃"; l1.style.left="-15px"; l1.style.top="10px";
+            stem.appendChild(l1);
+        }
+        if (this.plant.bbch >= 20) {
+             const l2 = document.createElement("div"); l2.className="plant-leaf"; l2.textContent="🍃"; l2.style.right="-15px"; l2.style.top="30px";
+             stem.appendChild(l2);
+        }
+        if (this.plant.bbch >= 60) {
+             const f = document.createElement("div"); f.className="plant-leaf"; f.textContent="🌼"; f.style.left="-5px"; f.style.top="-15px";
+             stem.appendChild(f);
+        }
+        if (this.plant.ripe_fruit > 0) {
+             const rf = document.createElement("div"); rf.className="plant-fruit"; rf.textContent="🍅"; rf.style.left="-5px"; rf.style.top="-10px";
+             stem.appendChild(rf);
+        }
+
+        const caption = document.getElementById("visual-caption");
+        if (this.plant.health <= 0) {
+            this.gameOver = true;
+            document.getElementById("btn-run").disabled = true;
+            stem.style.background = "#8d6e63"; // brown/dead
+            caption.textContent = "Plant Dead";
+            this.log("GAME OVER: Plant died.", "bad");
+        } else {
+            caption.textContent = this.plant.getStageName();
+        }
+    }
 }
 
-const sim = new Simulation();
+let sim;
+
+function startGame() {
+    document.getElementById("overlay").classList.add("hidden");
+    sim = new Simulation();
+    // Initial UI push
+    sim.updateUI();
+}
+
+function toggleScout() {
+    if (!sim) return;
+    sim.scoutEnabled = !sim.scoutEnabled;
+    const btn = document.getElementById("btn-scout");
+    btn.textContent = sim.scoutEnabled ? "🔍 Scout: ON" : "🙈 Scout: OFF";
+    btn.style.background = sim.scoutEnabled ? "#5e35b1" : "#9575cd";
+}
 
 </script>
 </body>
