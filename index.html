@@ -5,391 +5,410 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Growing Plants Gizmo Clone</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; background-color: #f0f4c3; color: #333; }
+        body { font-family: 'Arial', sans-serif; margin: 0; padding: 0; background-color: #f4f4f4; color: #333; height: 100vh; display: flex; flex-direction: column; }
 
-        /* Layout */
-        .main-grid { display: grid; grid-template-columns: 3fr 1fr; gap: 20px; }
-        .visual-area { background: white; border-radius: 12px; padding: 20px; display: flex; justify-content: space-around; align-items: flex-end; height: 400px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); position: relative; }
-        .controls-area { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .data-area { grid-column: 1 / -1; background: white; border-radius: 12px; padding: 20px; margin-top: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        /* Toolbar */
+        .toolbar { background: #e0e0e0; padding: 10px; border-bottom: 1px solid #ccc; display: flex; align-items: center; gap: 10px; }
+        .toolbar h1 { margin: 0; font-size: 18px; margin-right: 20px; color: #2c3e50; }
+        button.tool-btn { padding: 5px 15px; border: 1px solid #999; background: #fff; cursor: pointer; border-radius: 3px; font-weight: bold; }
+        button.tool-btn:hover { background: #f0f0f0; }
 
-        /* Pot/Plant Visuals */
-        .pot-container { width: 30%; position: relative; text-align: center; }
-        .pot { width: 100px; height: 80px; background: #795548; margin: 0 auto; clip-path: polygon(10% 0, 90% 0, 80% 100%, 20% 100%); position: relative; z-index: 2; }
-        .soil-surface { width: 80px; height: 10px; background: #5d4037; margin: 0 auto; margin-bottom: -5px; position: relative; z-index: 1; }
-        .plant-stem { width: 8px; background: #4caf50; margin: 0 auto; position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); transition: height 0.5s; z-index: 1; border-radius: 4px 4px 0 0; }
-        .leaf { position: absolute; font-size: 20px; }
-        .light-beam { position: absolute; top: 0; width: 100%; height: 100%; background: radial-gradient(circle at 50% 0, rgba(255,235,59,0.3), transparent 70%); pointer-events: none; opacity: 0; transition: opacity 0.5s; }
+        /* Main Layout */
+        .workspace { display: flex; flex: 1; overflow: hidden; }
 
-        /* Controls */
-        h2 { margin-top: 0; color: #558b2f; }
-        .control-group { margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #eee; }
-        label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 14px; }
-        select, input { width: 100%; padding: 8px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; }
+        /* Left Controls */
+        .controls-panel { width: 250px; background: #fff; border-right: 1px solid #ccc; padding: 15px; overflow-y: auto; }
+        .control-group { margin-bottom: 20px; background: #f9f9f9; padding: 10px; border: 1px solid #e0e0e0; border-radius: 4px; }
+        .control-group h3 { margin: 0 0 10px 0; font-size: 14px; color: #555; border-bottom: 1px solid #ddd; padding-bottom: 5px; }
+        label { display: block; font-size: 12px; margin-bottom: 4px; font-weight: bold; }
+        select, input[type="range"] { width: 100%; box-sizing: border-box; }
+        .value-display { text-align: right; font-size: 11px; color: #666; margin-bottom: 8px; }
 
-        .tab-btn { padding: 10px 20px; cursor: pointer; background: #e0e0e0; border: none; border-radius: 4px 4px 0 0; margin-right: 5px; }
-        .tab-btn.active { background: #fff; border: 1px solid #ccc; border-bottom: none; font-weight: bold; }
+        /* Center Visuals */
+        .visual-panel { flex: 1; background: #fff; display: flex; flex-direction: column; position: relative; }
+        .pots-container { flex: 1; display: flex; justify-content: space-around; align-items: flex-end; padding-bottom: 20px; background: linear-gradient(to bottom, #e3f2fd 80%, #d7ccc8 80%); position: relative; }
 
-        .pot-label { font-weight: bold; margin-bottom: 5px; display: inline-block; padding: 2px 8px; border-radius: 4px; color: white; }
-        .pot-a { background-color: #ef5350; }
-        .pot-b { background-color: #42a5f5; }
-        .pot-c { background-color: #ab47bc; }
+        .pot-wrapper { position: relative; width: 100px; height: 350px; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; }
+        .pot-label { position: absolute; top: -25px; font-weight: bold; padding: 2px 8px; border-radius: 3px; color: white; font-size: 12px; }
+        .pot-a-label { background: #e53935; }
+        .pot-b-label { background: #1e88e5; }
+        .pot-c-label { background: #8e24aa; }
 
-        /* Data Tables */
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
-        th { background-color: #f1f8e9; }
+        .ruler { position: absolute; left: -30px; bottom: 80px; height: 250px; width: 30px; border-right: 1px solid #333; display: flex; flex-direction: column-reverse; font-size: 10px; color: #666; }
+        .tick { height: 25px; border-top: 1px solid #999; box-sizing: border-box; width: 10px; align-self: flex-end; }
+        .tick-label { position: absolute; right: 12px; transform: translateY(50%); }
 
-        /* Master Controls */
-        .play-controls { display: flex; gap: 10px; margin-top: 20px; }
-        button.play { flex: 1; background: #66bb6a; color: white; border: none; padding: 15px; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; }
-        button.play:hover { background: #43a047; }
-        button.reset { background: #ef5350; color: white; border: none; padding: 15px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        .pot-base { width: 80px; height: 70px; background: #795548; clip-path: polygon(10% 0, 90% 0, 80% 100%, 20% 100%); z-index: 5; position: relative; }
+        .plant-stem { width: 6px; background: #4caf50; position: absolute; bottom: 70px; z-index: 4; transition: height 0.2s; border-radius: 3px 3px 0 0; }
+        .leaf { position: absolute; font-size: 20px; z-index: 6; }
+
+        /* Lamps */
+        .lamp { position: absolute; top: 20px; width: 60px; height: 40px; background: #444; border-radius: 20px 20px 0 0; z-index: 10; }
+        .light-beam { position: absolute; top: 40px; width: 120px; height: 300px; background: radial-gradient(ellipse at top, rgba(255,235,59,0.4), transparent 70%); clip-path: polygon(20% 0, 80% 0, 100% 100%, 0% 100%); pointer-events: none; opacity: 0.5; }
+
+        /* Bottom Data Panel */
+        .data-panel { height: 200px; background: #fff; border-top: 2px solid #ccc; display: flex; flex-direction: column; }
+        .tabs { display: flex; background: #eee; border-bottom: 1px solid #ccc; }
+        .tab { padding: 8px 20px; cursor: pointer; font-size: 13px; font-weight: bold; border-right: 1px solid #ccc; background: #eee; }
+        .tab.active { background: #fff; border-bottom: 2px solid #fff; margin-bottom: -1px; }
+
+        .tab-content { flex: 1; overflow: auto; padding: 10px; display: none; }
+        .tab-content.active { display: block; }
+
+        table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        th, td { border: 1px solid #ddd; padding: 4px 8px; text-align: center; }
+        th { background: #f0f0f0; position: sticky; top: 0; }
+
+        /* Canvas */
+        #graph-canvas { width: 100%; height: 100%; }
+
     </style>
 </head>
 <body>
 
-    <h1>🌱 Growing Plants Investigation</h1>
-
-    <div class="main-grid">
-        <!-- Visual Area -->
-        <div class="visual-area" id="visual-area">
-            <!-- Pot A -->
-            <div class="pot-container" id="pot-A">
-                <div class="light-beam" id="light-A"></div>
-                <div style="position: absolute; top: -30px; left: 50%; transform: translateX(-50%); font-weight: bold;">Pot A</div>
-                <div class="plant-stem" id="stem-A" style="height: 0px;"></div>
-                <div class="soil-surface"></div>
-                <div class="pot"></div>
-                <div class="stats-overlay" id="stats-A" style="font-size: 12px; margin-top: 5px;">0.0 cm | 0.0 g</div>
-            </div>
-
-            <!-- Pot B -->
-            <div class="pot-container" id="pot-B">
-                <div class="light-beam" id="light-B"></div>
-                <div style="position: absolute; top: -30px; left: 50%; transform: translateX(-50%); font-weight: bold;">Pot B</div>
-                <div class="plant-stem" id="stem-B" style="height: 0px;"></div>
-                <div class="soil-surface"></div>
-                <div class="pot"></div>
-                <div class="stats-overlay" id="stats-B" style="font-size: 12px; margin-top: 5px;">0.0 cm | 0.0 g</div>
-            </div>
-
-            <!-- Pot C -->
-            <div class="pot-container" id="pot-C">
-                <div class="light-beam" id="light-C"></div>
-                <div style="position: absolute; top: -30px; left: 50%; transform: translateX(-50%); font-weight: bold;">Pot C</div>
-                <div class="plant-stem" id="stem-C" style="height: 0px;"></div>
-                <div class="soil-surface"></div>
-                <div class="pot"></div>
-                <div class="stats-overlay" id="stats-C" style="font-size: 12px; margin-top: 5px;">0.0 cm | 0.0 g</div>
-            </div>
-        </div>
-
-        <!-- Controls Area -->
-        <div class="controls-area">
-            <h2>Configuration</h2>
-            <div style="margin-bottom: 15px;">
-                <button class="tab-btn active" onclick="switchTab('A')">Pot A</button>
-                <button class="tab-btn" onclick="switchTab('B')">Pot B</button>
-                <button class="tab-btn" onclick="switchTab('C')">Pot C</button>
-            </div>
-
-            <div id="config-panel">
-                <div class="control-group">
-                    <label>Seed Type</label>
-                    <select id="cfg-seed">
-                        <option value="Tomato">Tomato</option>
-                        <option value="Bean">Bean</option>
-                        <option value="Turnip">Turnip</option>
-                    </select>
-                </div>
-
-                <div class="control-group">
-                    <label>Light Amount (Daily)</label>
-                    <input type="range" id="cfg-light" min="0" max="100" value="50">
-                    <div style="text-align: right; font-size: 12px;" id="disp-light">50%</div>
-                </div>
-
-                <div class="control-group">
-                    <label>Water Amount (Daily mL)</label>
-                    <input type="range" id="cfg-water" min="0" max="100" value="50">
-                    <div style="text-align: right; font-size: 12px;" id="disp-water">50 mL</div>
-                </div>
-
-                <div class="control-group">
-                    <label>Soil Type</label>
-                    <select id="cfg-soil">
-                        <option value="Compost">Compost (Rich)</option>
-                        <option value="Fertilizer">Fertilizer (High N)</option>
-                        <option value="Sand">Sand (Poor)</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="play-controls">
-                <button class="play" onclick="sim.play()" id="btn-play">▶ Play (Day 1)</button>
-                <button class="reset" onclick="sim.reset()">↺ Reset</button>
-            </div>
-        </div>
+    <div class="toolbar">
+        <h1>🌱 Growing Plants</h1>
+        <button class="tool-btn" onclick="sim.play()" id="btn-play">▶ Play</button>
+        <button class="tool-btn" onclick="sim.reset()">↺ Reset</button>
+        <div style="flex:1"></div>
+        <div id="day-counter" style="font-weight: bold; margin-right: 20px;">Day: 0</div>
     </div>
 
-    <!-- Data Area -->
-    <div class="data-area">
-        <h2>Data Collection</h2>
-        <div style="height: 200px; overflow-y: auto;">
-            <table id="data-table">
-                <thead>
-                    <tr>
-                        <th>Day</th>
-                        <th class="pot-label pot-a">Pot A Height</th>
-                        <th class="pot-label pot-a">Pot A Mass</th>
-                        <th class="pot-label pot-b">Pot B Height</th>
-                        <th class="pot-label pot-b">Pot B Mass</th>
-                        <th class="pot-label pot-c">Pot C Height</th>
-                        <th class="pot-label pot-c">Pot C Mass</th>
-                    </tr>
-                </thead>
-                <tbody id="data-body">
-                    <!-- Rows go here -->
-                </tbody>
-            </table>
+    <div class="workspace">
+        <div class="controls-panel">
+            <div class="control-group">
+                <h3>Pot Selection</h3>
+                <select id="active-pot" onchange="sim.updateControls()">
+                    <option value="A">Pot A (Red)</option>
+                    <option value="B">Pot B (Blue)</option>
+                    <option value="C">Pot C (Purple)</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <h3>Variables</h3>
+                <label>Seed Type</label>
+                <select id="cfg-seed">
+                    <option value="Tomato">Tomato</option>
+                    <option value="Bean">Bean</option>
+                    <option value="Turnip">Turnip</option>
+                </select>
+
+                <label style="margin-top: 10px;">Water (mL/day)</label>
+                <input type="range" id="cfg-water" min="0" max="100" value="50">
+                <div class="value-display" id="disp-water">50 mL</div>
+
+                <label>Light (%/day)</label>
+                <input type="range" id="cfg-light" min="0" max="100" value="50">
+                <div class="value-display" id="disp-light">50%</div>
+
+                <label>Soil Type</label>
+                <select id="cfg-soil">
+                    <option value="Compost">Compost</option>
+                    <option value="Fertilizer">Fertilizer</option>
+                    <option value="Sand">Sand</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="visual-panel">
+            <div class="pots-container">
+                <!-- Pot A -->
+                <div class="pot-wrapper">
+                    <div class="lamp"><div class="light-beam" id="beam-A"></div></div>
+                    <div class="pot-label pot-a-label">Pot A</div>
+                    <div class="ruler" id="ruler-A"></div> <!-- Rulers generated via JS -->
+                    <div class="plant-stem" id="stem-A" style="height: 0px;"></div>
+                    <div class="pot-base"></div>
+                </div>
+
+                <!-- Pot B -->
+                <div class="pot-wrapper">
+                    <div class="lamp"><div class="light-beam" id="beam-B"></div></div>
+                    <div class="pot-label pot-b-label">Pot B</div>
+                    <div class="ruler" id="ruler-B"></div>
+                    <div class="plant-stem" id="stem-B" style="height: 0px;"></div>
+                    <div class="pot-base"></div>
+                </div>
+
+                <!-- Pot C -->
+                <div class="pot-wrapper">
+                    <div class="lamp"><div class="light-beam" id="beam-C"></div></div>
+                    <div class="pot-label pot-c-label">Pot C</div>
+                    <div class="ruler" id="ruler-C"></div>
+                    <div class="plant-stem" id="stem-C" style="height: 0px;"></div>
+                    <div class="pot-base"></div>
+                </div>
+            </div>
+
+            <div class="data-panel">
+                <div class="tabs">
+                    <div class="tab active" onclick="showTab('graph')">GRAPH</div>
+                    <div class="tab" onclick="showTab('table')">TABLE</div>
+                </div>
+
+                <div id="tab-graph" class="tab-content active" style="overflow: hidden;">
+                    <canvas id="graph-canvas"></canvas>
+                </div>
+
+                <div id="tab-table" class="tab-content">
+                    <table id="data-table">
+                        <thead>
+                            <tr>
+                                <th>Day</th>
+                                <th>A Height</th> <th>A Mass</th>
+                                <th>B Height</th> <th>B Mass</th>
+                                <th>C Height</th> <th>C Mass</th>
+                            </tr>
+                        </thead>
+                        <tbody id="data-body"></tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 
 <script>
-/* === DATA DEFINITIONS === */
+// --- CONFIG ---
 const SEEDS = {
-    "Tomato": { rate: 1.0, maxH: 50, color: "#4caf50" },
-    "Bean": { rate: 1.5, maxH: 40, color: "#81c784" },
-    "Turnip": { rate: 0.8, maxH: 20, color: "#2e7d32" }
+    "Tomato": { rate: 1.0, maxH: 60, leaf: "🍃" },
+    "Bean": { rate: 1.8, maxH: 50, leaf: "🌱" },
+    "Turnip": { rate: 0.7, maxH: 25, leaf: "🌿" }
 };
-
 const SOILS = {
-    "Compost": { growth: 1.2, retention: 0.6 },
-    "Fertilizer": { growth: 1.5, retention: 0.5 },
-    "Sand": { growth: 0.8, retention: 0.2 }
+    "Compost": { growth: 1.1, hold: 0.6 },
+    "Fertilizer": { growth: 1.3, hold: 0.5 },
+    "Sand": { growth: 0.8, hold: 0.2 }
 };
 
-/* === CLASSES === */
-class Pot {
-    constructor(id) {
-        this.id = id;
-        this.seed = "Tomato";
-        this.light = 50; // 0-100
-        this.water = 50; // mL
-        this.soil = "Compost";
-
-        this.height = 0;
-        this.mass = 0;
-        this.health = 100; // 0-100
-        this.soilMoisture = 0; // %
-    }
-
-    reset() {
-        this.height = 0;
-        this.mass = 0;
-        this.health = 100;
-        this.soilMoisture = 0;
-    }
-
-    grow() {
-        if (this.health <= 0) return;
-
-        const species = SEEDS[this.seed];
-        const soilProps = SOILS[this.soil];
-
-        // 1. Water Logic
-        // Add water, subtract evap
-        const evap = 10 + (this.light * 0.2);
-        this.soilMoisture += (this.water * soilProps.retention) - evap;
-        if (this.soilMoisture < 0) this.soilMoisture = 0;
-        if (this.soilMoisture > 100) this.soilMoisture = 100; // Cap
-
-        // 2. Stress Logic
-        let stress = 0;
-        if (this.soilMoisture < 10) stress += 5; // Drought
-        if (this.soilMoisture > 90) stress += 5; // Drowning
-
-        // Light Stress (Too low = slow, Too high = burn?)
-        if (this.light < 10) stress += 2;
-
-        this.health -= stress;
-        if (this.health < 0) this.health = 0;
-
-        // 3. Growth Logic
-        if (this.health > 20) {
-            const lightFactor = this.light / 50; // Normalized around 50
-            const waterFactor = Math.max(0, Math.min(1, this.soilMoisture / 50));
-
-            const growthAmt = species.rate * soilProps.growth * lightFactor * waterFactor * (this.health/100);
-
-            this.height += growthAmt;
-            this.mass += (growthAmt * 0.2);
-        }
-    }
-}
-
+// --- SIMULATION ---
 class Simulation {
     constructor() {
         this.pots = {
-            'A': new Pot('A'),
-            'B': new Pot('B'),
-            'C': new Pot('C')
+            'A': { seed:'Tomato', water:50, light:50, soil:'Compost', h:0, m:0, health:100, moist:0, hist:[] },
+            'B': { seed:'Bean', water:50, light:50, soil:'Compost', h:0, m:0, health:100, moist:0, hist:[] },
+            'C': { seed:'Turnip', water:50, light:50, soil:'Compost', h:0, m:0, health:100, moist:0, hist:[] }
         };
         this.day = 0;
-        this.activeTab = 'A';
-        this.interval = null;
+        this.timer = null;
+
+        // Init Rulers
+        ['A','B','C'].forEach(id => {
+            const r = document.getElementById(`ruler-${id}`);
+            for(let i=0; i<=50; i+=10) {
+                const t = document.createElement('div');
+                t.className='tick';
+                t.innerHTML = `<span class="tick-label">${i}</span>`;
+                r.appendChild(t);
+            }
+        });
 
         this.bindInputs();
-        this.updateUI(); // Initial
+        this.updateControls(); // Sync UI
+        this.updateVisuals();
+        this.drawGraph();
     }
 
     bindInputs() {
-        // Bind UI inputs to active pot
-        document.getElementById('cfg-seed').addEventListener('change', (e) => {
-            this.pots[this.activeTab].seed = e.target.value;
-            if(this.day === 0) this.updateVisuals(); // Update seed look if needed?
-        });
-        document.getElementById('cfg-light').addEventListener('input', (e) => {
-            this.pots[this.activeTab].light = parseInt(e.target.value);
+        const getPot = () => this.pots[document.getElementById('active-pot').value];
+
+        document.getElementById('cfg-seed').onchange = (e) => {
+            if(this.day > 0) return; // Locked when running
+            getPot().seed = e.target.value;
+        };
+
+        document.getElementById('cfg-water').oninput = (e) => {
+            getPot().water = parseInt(e.target.value);
+            document.getElementById('disp-water').textContent = e.target.value + " mL";
+        };
+
+        document.getElementById('cfg-light').oninput = (e) => {
+            getPot().light = parseInt(e.target.value);
             document.getElementById('disp-light').textContent = e.target.value + "%";
             this.updateVisuals();
-        });
-        document.getElementById('cfg-water').addEventListener('input', (e) => {
-            this.pots[this.activeTab].water = parseInt(e.target.value);
-            document.getElementById('disp-water').textContent = e.target.value + " mL";
-        });
-        document.getElementById('cfg-soil').addEventListener('change', (e) => {
-            this.pots[this.activeTab].soil = e.target.value;
-        });
+        };
+
+        document.getElementById('cfg-soil').onchange = (e) => {
+            if(this.day > 0) return;
+            getPot().soil = e.target.value;
+        };
     }
 
-    setActiveTab(id) {
-        this.activeTab = id;
-
-        // Update Buttons
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        // Find button with onclick matching
-        const buttons = document.getElementsByClassName('tab-btn');
-        for(let b of buttons) {
-            if(b.textContent.includes(id)) b.classList.add('active');
-        }
-
-        // Update Inputs to match Pot state
-        const p = this.pots[id];
+    updateControls() {
+        const p = this.pots[document.getElementById('active-pot').value];
         document.getElementById('cfg-seed').value = p.seed;
-        document.getElementById('cfg-light').value = p.light;
-        document.getElementById('disp-light').textContent = p.light + "%";
         document.getElementById('cfg-water').value = p.water;
         document.getElementById('disp-water').textContent = p.water + " mL";
+        document.getElementById('cfg-light').value = p.light;
+        document.getElementById('disp-light').textContent = p.light + "%";
         document.getElementById('cfg-soil').value = p.soil;
+
+        // Disable seeds/soil if running
+        document.getElementById('cfg-seed').disabled = (this.day > 0);
+        document.getElementById('cfg-soil').disabled = (this.day > 0);
     }
 
     play() {
-        if (this.interval) {
-            // Pause
-            clearInterval(this.interval);
-            this.interval = null;
+        if(this.timer) {
+            clearInterval(this.timer);
+            this.timer = null;
             document.getElementById('btn-play').textContent = "▶ Play";
-            return;
+        } else {
+            document.getElementById('btn-play').textContent = "⏸ Pause";
+            document.getElementById('cfg-seed').disabled = true;
+            document.getElementById('cfg-soil').disabled = true;
+
+            this.timer = setInterval(() => {
+                this.day++;
+                if(this.day > 50) return this.play(); // Auto-stop
+
+                this.step();
+                this.updateVisuals();
+                this.logData();
+                this.drawGraph();
+                document.getElementById('day-counter').textContent = "Day: " + this.day;
+            }, 200);
         }
-
-        document.getElementById('btn-play').textContent = "⏸ Pause";
-        this.interval = setInterval(() => {
-            this.day++;
-            if (this.day > 50) {
-                this.play(); // Auto pause at 50
-                return;
-            }
-
-            // Grow all pots
-            Object.values(this.pots).forEach(p => p.grow());
-
-            this.logData();
-            this.updateVisuals();
-            document.getElementById('btn-play').textContent = `⏸ Day ${this.day}`;
-
-        }, 200); // 200ms per day
     }
 
-    reset() {
-        if (this.interval) this.play(); // Stop if running
-        this.day = 0;
-        Object.values(this.pots).forEach(p => p.reset());
-        document.getElementById('data-body').innerHTML = "";
-        this.updateVisuals();
-        document.getElementById('btn-play').textContent = "▶ Play (Day 1)";
-    }
+    step() {
+        Object.values(this.pots).forEach(p => {
+            if(p.health <= 0) return;
 
-    logData() {
-        const row = document.createElement('tr');
-        row.innerHTML = `<td>${this.day}</td>
-            <td>${this.pots['A'].height.toFixed(1)}</td>
-            <td>${this.pots['A'].mass.toFixed(1)}</td>
-            <td>${this.pots['B'].height.toFixed(1)}</td>
-            <td>${this.pots['B'].mass.toFixed(1)}</td>
-            <td>${this.pots['C'].height.toFixed(1)}</td>
-            <td>${this.pots['C'].mass.toFixed(1)}</td>`;
-        document.getElementById('data-body').prepend(row); // Newest top
-    }
+            const seed = SEEDS[p.seed];
+            const soil = SOILS[p.soil];
 
-    updateVisuals() {
-        ['A', 'B', 'C'].forEach(id => {
-            const p = this.pots[id];
+            // Moisture logic
+            const evap = 5 + (p.light * 0.15);
+            p.moist += (p.water * soil.hold) - evap;
+            p.moist = Math.max(0, Math.min(100, p.moist));
 
-            // Stem Height (Scale: 1cm = 3px)
-            const stem = document.getElementById(`stem-${id}`);
-            stem.style.height = (p.height * 3) + "px";
+            // Stress
+            let stress = 0;
+            if(p.moist < 10 || p.moist > 90) stress += 5;
+            if(p.light < 10) stress += 2;
+            p.health = Math.max(0, p.health - stress);
 
-            // Leaves?
-            stem.innerHTML = "";
-            if (p.height > 5) {
-                // Add simplified leaves
-                const l = document.createElement('div');
-                l.className = 'leaf';
-                l.textContent = "🍃";
-                l.style.top = "-10px";
-                l.style.left = "-10px";
-                stem.appendChild(l);
-            }
-            if (p.height > 15) {
-                 const l2 = document.createElement('div');
-                l2.className = 'leaf';
-                l2.textContent = "🍃";
-                l2.style.top = "10px";
-                l2.style.right = "-20px";
-                stem.appendChild(l2);
+            // Growth
+            if(p.health > 20) {
+                const rate = seed.rate * soil.growth * (p.light/50) * (p.health/100);
+                // Logistic curve approx: slow start, fast mid, slow end
+                const capFactor = 1 - (p.h / seed.maxH);
+                const growth = Math.max(0, rate * capFactor);
+
+                p.h += growth;
+                p.m += (growth * 0.5) + (p.h * 0.05); // Mass accumulates
             }
 
-            // Light Beam Opacity
-            const beam = document.getElementById(`light-${id}`);
-            beam.style.opacity = p.light / 100;
-
-            // Health Color
-            if (p.health < 50) stem.style.backgroundColor = "#dcedc8"; // Yellowing
-            if (p.health <= 0) stem.style.backgroundColor = "#8d6e63"; // Dead
-            else stem.style.backgroundColor = "#4caf50";
-
-            // Stats
-            document.getElementById(`stats-${id}`).textContent = `${p.height.toFixed(1)} cm | ${p.mass.toFixed(1)} g`;
+            p.hist.push({ h: p.h, m: p.m });
         });
     }
 
-    updateUI() {
-        this.setActiveTab(this.activeTab);
+    reset() {
+        if(this.timer) this.play(); // Pause
+        this.day = 0;
+        Object.values(this.pots).forEach(p => {
+            p.h = 0; p.m = 0; p.health = 100; p.moist = 0; p.hist = [];
+        });
+        document.getElementById('data-body').innerHTML = "";
+        document.getElementById('day-counter').textContent = "Day: 0";
+        this.updateControls();
         this.updateVisuals();
+        this.drawGraph();
+    }
+
+    updateVisuals() {
+        ['A','B','C'].forEach(id => {
+            const p = this.pots[id];
+
+            // Light
+            document.getElementById(`beam-${id}`).style.opacity = p.light / 100;
+
+            // Plant
+            const stem = document.getElementById(`stem-${id}`);
+            // Scale: 50cm = 250px -> 1cm = 5px
+            stem.style.height = (p.h * 5) + "px";
+
+            // Leaves (Simplified visual)
+            stem.innerHTML = "";
+            const leafCount = Math.floor(p.h / 10);
+            const icon = SEEDS[p.seed].leaf;
+
+            for(let i=0; i<leafCount; i++) {
+                const l = document.createElement('div');
+                l.className = 'leaf';
+                l.textContent = icon;
+                l.style.bottom = (i * 30) + "px";
+                l.style.left = (i % 2 === 0) ? "-15px" : "5px";
+                stem.appendChild(l);
+            }
+
+            // Color based on health
+            if(p.health < 50) stem.style.background = "#cddc39";
+            if(p.health <= 0) stem.style.background = "#795548";
+            else stem.style.background = "#4caf50";
+        });
+    }
+
+    logData() {
+        const r = `<tr>
+            <td>${this.day}</td>
+            <td>${this.pots.A.h.toFixed(1)}</td><td>${this.pots.A.m.toFixed(1)}</td>
+            <td>${this.pots.B.h.toFixed(1)}</td><td>${this.pots.B.m.toFixed(1)}</td>
+            <td>${this.pots.C.h.toFixed(1)}</td><td>${this.pots.C.m.toFixed(1)}</td>
+        </tr>`;
+        document.getElementById('data-body').insertAdjacentHTML('afterbegin', r);
+    }
+
+    drawGraph() {
+        const cvs = document.getElementById('graph-canvas');
+        const ctx = cvs.getContext('2d');
+        const w = cvs.parentElement.clientWidth;
+        const h = cvs.parentElement.clientHeight;
+        cvs.width = w; cvs.height = h;
+
+        ctx.clearRect(0,0,w,h);
+
+        // Grid
+        ctx.strokeStyle = "#eee";
+        ctx.beginPath();
+        for(let i=0; i<w; i+=w/10) { ctx.moveTo(i,0); ctx.lineTo(i,h); }
+        for(let i=0; i<h; i+=h/5) { ctx.moveTo(0,i); ctx.lineTo(w,i); }
+        ctx.stroke();
+
+        // Plot
+        const colors = { 'A':'#e53935', 'B':'#1e88e5', 'C':'#8e24aa' };
+
+        ['A','B','C'].forEach(id => {
+            const hist = this.pots[id].hist;
+            if(hist.length < 2) return;
+
+            ctx.strokeStyle = colors[id];
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+
+            hist.forEach((pt, i) => {
+                const x = (i / 50) * w; // 50 days max
+                const y = h - (pt.h / 60) * h; // 60cm max
+                if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+            });
+            ctx.stroke();
+        });
     }
 }
 
-let sim;
-function switchTab(id) {
-    if (sim) sim.setActiveTab(id);
+// --- TABS ---
+function showTab(t) {
+    document.querySelectorAll('.tab').forEach(e => e.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(e => e.classList.remove('active'));
+
+    // Find clicked tab
+    const tabs = document.querySelectorAll('.tab');
+    if(t === 'graph') { tabs[0].classList.add('active'); document.getElementById('tab-graph').classList.add('active'); }
+    else { tabs[1].classList.add('active'); document.getElementById('tab-table').classList.add('active'); }
 }
 
-window.onload = () => {
-    sim = new Simulation();
-};
-
+const sim = new Simulation();
 </script>
 </body>
 </html>
