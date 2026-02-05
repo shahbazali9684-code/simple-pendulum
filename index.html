@@ -375,6 +375,7 @@ class Simulation {
     }
 
     runWeek() {
+        console.log("Button Click: Next Week");
         if (this.gameOver) return;
 
         const waterInput = parseFloat(document.getElementById("water-in").value) || 0;
@@ -416,6 +417,7 @@ class Simulation {
     }
 
     doTransplant() {
+        console.log("Button Click: Transplant");
         this.env.is_indoors = false;
         this.log("Transplanted outdoors!", "good");
         this.plant.health -= 0.05; // Shock
@@ -423,6 +425,7 @@ class Simulation {
     }
 
     doHarvest() {
+        console.log("Button Click: Harvest");
         const count = this.plant.ripe_fruit;
         this.plant.ripe_fruit = 0;
         this.log(`Harvested ${count} fruits!`, "good");
@@ -430,12 +433,14 @@ class Simulation {
     }
 
     doFertilize() {
+        console.log("Button Click: Fertilize");
         this.plant.nitrogen = Math.min(1.0, this.plant.nitrogen + 0.4);
         this.log("Fertilized plant. Nitrogen up.", "good");
         this.updateUI();
     }
 
     doPrune() {
+        console.log("Button Click: Prune");
         this.plant.leaf_area *= 0.8;
         this.log("Pruned leaves. Airflow improved.", "warning");
         // Could remove disease here
@@ -479,12 +484,22 @@ class Simulation {
 
         // Visuals
         const stem = document.getElementById("visual-stem");
-        // Max height visual ~180px
-        const visHeight = Math.min(180, this.plant.height * 2);
+        // Max height visual ~180px. If height is 0 (Seed), visually explicit.
+        let visHeight = Math.min(180, this.plant.height * 2);
+        if (this.plant.bbch < 9) visHeight = 0; // Hidden underground
+        else if (this.plant.bbch >= 9 && visHeight < 10) visHeight = 10; // Little sprout
+
         stem.style.height = visHeight + "px";
 
         // Dynamic leaves/fruit based on stage (simplified)
         stem.innerHTML = ""; // clear
+
+        if (this.plant.bbch >= 9 && this.plant.bbch < 10) {
+             // Sprout
+             const s = document.createElement("div"); s.textContent="🌱"; s.style.position="absolute"; s.style.top="-20px"; s.style.left="-5px";
+             stem.appendChild(s);
+        }
+
         if (this.plant.bbch >= 10) {
             // Add leaves
             const l1 = document.createElement("div"); l1.className="plant-leaf"; l1.textContent="🍃"; l1.style.left="-15px"; l1.style.top="10px";
@@ -519,6 +534,7 @@ class Simulation {
 let sim;
 
 function startGame() {
+    console.log("Button Click: Start Game");
     document.getElementById("overlay").classList.add("hidden");
     sim = new Simulation();
     // Initial UI push
@@ -526,6 +542,7 @@ function startGame() {
 }
 
 function toggleScout() {
+    console.log("Button Click: Toggle Scout");
     if (!sim) return;
     sim.scoutEnabled = !sim.scoutEnabled;
     const btn = document.getElementById("btn-scout");
