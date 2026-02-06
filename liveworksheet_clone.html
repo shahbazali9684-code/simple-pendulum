@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Body Parts Game</title>
+    <style>
+        body {
+            font-family: 'Comic Sans MS', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        #game-container {
+            position: relative;
+            width: 750px; /* Width of image (564) + Sidebar (~180) */
+            height: 533px;
+            background: url('image.png') no-repeat;
+            background-size: 564px 533px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            background-color: white; /* Fill the sidebar area */
+            border: 1px solid #ccc;
+        }
+        /* Sidebar for draggables */
+        #sidebar {
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            width: 180px;
+            background-color: #f9f9f9;
+            border-left: 2px solid #ddd;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 10px;
+        }
+
+        .draggable {
+            background-color: #ffd700; /* Gold/Yellow */
+            border: 2px solid #daa520;
+            padding: 5px;
+            cursor: grab;
+            font-weight: bold;
+            font-size: 14px;
+            width: 120px;
+            text-align: center;
+            z-index: 10;
+            user-select: none;
+        }
+
+        .draggable:active {
+            cursor: grabbing;
+        }
+
+        .drop-zone {
+            position: absolute;
+            width: 90px;
+            height: 30px;
+            /* border: 2px dashed rgba(0,0,0,0.2); */ /* Removed for production look */
+            background-color: #fffacd; /* LemonChiffon to cover background text */
+            border: 1px solid #dcdcdc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 5; /* Ensure above background */
+        }
+
+        /* When item is dropped, it fills the zone */
+        .drop-zone .draggable {
+            margin: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+            box-sizing: border-box;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .hidden { display: none; }
+
+        #win-message {
+            position: absolute;
+            top: 50%;
+            left: 40%; /* Center relative to image part */
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border: 4px solid green;
+            font-size: 24px;
+            font-weight: bold;
+            color: green;
+            z-index: 100;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div id="win-message" class="hidden">
+        <div>Good Job!</div>
+        <button onclick="location.reload()" style="margin-top:10px; padding:5px 10px; cursor:pointer;">Play Again</button>
+    </div>
+
+    <!-- Drop Zones - Left Side (Hair, Ear, Mouth, Hand, Foot) -->
+    <div class="drop-zone" id="zone-hair" style="top: 80px; left: 185px;" data-target="hair"></div>
+    <div class="drop-zone" id="zone-ear" style="top: 145px; left: 185px;" data-target="ear"></div>
+    <div class="drop-zone" id="zone-mouth" style="top: 210px; left: 185px;" data-target="mouth"></div>
+    <div class="drop-zone" id="zone-hand" style="top: 340px; left: 185px;" data-target="hand"></div>
+    <div class="drop-zone" id="zone-foot" style="top: 465px; left: 185px;" data-target="foot"></div>
+
+    <!-- Drop Zones - Right Side (Eye, Nose, Neck, Arm, Leg) -->
+    <div class="drop-zone" id="zone-eye" style="top: 80px; left: 515px;" data-target="eye"></div>
+    <div class="drop-zone" id="zone-nose" style="top: 145px; left: 515px;" data-target="nose"></div>
+    <div class="drop-zone" id="zone-neck" style="top: 210px; left: 515px;" data-target="neck"></div>
+    <div class="drop-zone" id="zone-arm" style="top: 275px; left: 515px;" data-target="arm"></div>
+    <div class="drop-zone" id="zone-leg" style="top: 410px; left: 515px;" data-target="leg"></div>
+
+    <div id="sidebar">
+        <!-- Draggables -->
+        <div class="draggable" draggable="true" id="arm">ARM</div>
+        <div class="draggable" draggable="true" id="leg">LEG</div>
+        <div class="draggable" draggable="true" id="neck">NECK</div>
+        <div class="draggable" draggable="true" id="nose">NOSE</div>
+        <div class="draggable" draggable="true" id="hand">HAND</div>
+        <div class="draggable" draggable="true" id="foot">FOOT</div>
+        <div class="draggable" draggable="true" id="ear">EAR</div>
+        <div class="draggable" draggable="true" id="eye">EYE</div>
+        <div class="draggable" draggable="true" id="hair">HAIR</div>
+        <div class="draggable" draggable="true" id="mouth">MOUTH</div>
+    </div>
+</div>
+
+<script>
+    const draggables = document.querySelectorAll('.draggable');
+    const dropZones = document.querySelectorAll('.drop-zone');
+    const winMessage = document.getElementById('win-message');
+
+    // Map to track filled zones
+    let filledZones = 0;
+    const totalZones = 10;
+
+    draggables.forEach(draggable => {
+        draggable.addEventListener('dragstart', (e) => {
+            draggable.classList.add('dragging');
+            e.dataTransfer.setData('text/plain', draggable.id);
+        });
+
+        draggable.addEventListener('dragend', () => {
+            draggable.classList.remove('dragging');
+        });
+    });
+
+    dropZones.forEach(zone => {
+        zone.addEventListener('dragover', e => {
+            e.preventDefault();
+        });
+
+        zone.addEventListener('drop', e => {
+            e.preventDefault();
+            const id = e.dataTransfer.getData('text/plain');
+            const draggable = document.getElementById(id);
+            if (!draggable) return; // Robustness check
+
+            const target = zone.getAttribute('data-target');
+
+            // Verification Logic
+            if (id === target) {
+                // Remove from sidebar or old zone
+                if (draggable.parentNode !== zone) {
+                    zone.innerHTML = ''; // Clear existing if any (though should be empty)
+                    zone.appendChild(draggable);
+                    draggable.style.background = '#90EE90'; // Light Green for correct
+
+                    // Check win condition
+                    checkWin();
+                }
+            } else {
+                // Optional: Feedback for wrong drop
+                alert('Try again!');
+            }
+        });
+    });
+
+    function checkWin() {
+        let correct = 0;
+        dropZones.forEach(zone => {
+            const child = zone.querySelector('.draggable');
+            if (child && child.id === zone.getAttribute('data-target')) {
+                correct++;
+            }
+        });
+
+        if (correct === totalZones) {
+            winMessage.classList.remove('hidden');
+        }
+    }
+</script>
+
+</body>
+</html>
