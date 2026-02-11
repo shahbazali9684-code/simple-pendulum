@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>B-LIFFT Model Learning</title>
+    <!-- Cropper.js CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+    <style>
+        /* --- General Styles --- */
+        body {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f6f8;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        header {
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        h1 { margin: 0; font-size: 24px; font-weight: 300; }
+
+        /* --- Navigation --- */
+        nav {
+            background-color: #34495e;
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            color: #bdc3c7;
+            padding: 15px 20px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all 0.3s;
+            border-bottom: 3px solid transparent;
+        }
+
+        .tab-btn:hover { color: #ecf0f1; background-color: #3e5871; }
+        .tab-btn.active { color: #fff; border-bottom-color: #3498db; background-color: #2c3e50; }
+
+        /* --- Main Content --- */
+        main {
+            flex: 1;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .section {
+            display: none;
+            background: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        .section.active { display: block; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h2 { border-bottom: 2px solid #f0f2f5; padding-bottom: 10px; margin-top: 0; color: #2c3e50; }
+        p { line-height: 1.6; color: #555; }
+
+        /* --- Upload Areas --- */
+        .upload-area {
+            border: 2px dashed #bdc3c7;
+            border-radius: 6px;
+            padding: 20px;
+            text-align: center;
+            margin-top: 20px;
+            background-color: #fafafa;
+            transition: border-color 0.3s;
+        }
+
+        .upload-area:hover { border-color: #3498db; }
+
+        .btn {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+            display: inline-block;
+            margin: 5px;
+        }
+
+        .btn:hover { background-color: #2980b9; }
+        .btn-success { background-color: #2ecc71; }
+        .btn-success:hover { background-color: #27ae60; }
+        .btn-danger { background-color: #e74c3c; }
+        .btn-danger:hover { background-color: #c0392b; }
+
+        input[type="file"] { display: none; }
+
+        .preview-container {
+            margin-top: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .preview-img {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        /* --- A4 Container --- */
+        .a4-container {
+            width: 100%;
+            max-width: 595px; /* A4 width in pixels (approx at 72dpi) */
+            aspect-ratio: 210/297;
+            background-color: white;
+            border: 1px solid #ddd;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            margin: 20px auto;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .a4-content {
+            width: 100%;
+            height: 100%;
+            padding: 20px;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+
+        /* --- Focus Canvas --- */
+        #focus-layout {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .toolbar {
+            background: #ecf0f1;
+            padding: 10px;
+            border-radius: 4px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .canvas-container-wrapper {
+            border: 1px solid #ccc;
+            background-color: #fff; /* Canvas background */
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.05);
+            display: flex;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        /* --- Worksheet --- */
+        .worksheet-item {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 5px;
+            border-left: 4px solid #3498db;
+        }
+
+        .worksheet-item label { display: block; margin-bottom: 8px; font-weight: bold; }
+        .worksheet-item input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .feedback { margin-top: 5px; font-size: 14px; font-weight: bold; }
+        .feedback.correct { color: #2ecc71; }
+        .feedback.incorrect { color: #e74c3c; }
+
+        /* --- Modal for Cropping --- */
+        #crop-modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.8);
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 90%;
+            max-width: 800px;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            height: 80%;
+        }
+
+        .crop-area {
+            flex: 1;
+            background: #333;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .crop-area img {
+            max-width: 100%;
+            max-height: 100%;
+            display: block;
+        }
+
+        .modal-footer {
+            padding-top: 15px;
+            text-align: right;
+        }
+
+        /* Responsive */
+        @media (min-width: 768px) {
+            #focus-layout { flex-direction: row; }
+            .canvas-container-wrapper { flex: 3; }
+            .side-panel { flex: 1; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>B-LIFFT Model Learning</h1>
+</header>
+
+<nav>
+    <button class="tab-btn active" onclick="openTab('bridging')">Bridging</button>
+    <button class="tab-btn" onclick="openTab('slo')">SLO</button>
+    <button class="tab-btn" onclick="openTab('focus')">Focus</button>
+    <button class="tab-btn" onclick="openTab('formative')">Formative Check</button>
+    <button class="tab-btn" onclick="openTab('thrive')">Thrive</button>
+    <button class="tab-btn" onclick="openTab('worksheet')">Interactive Worksheet</button>
+</nav>
+
+<main>
+    <!-- Bridging Tab -->
+    <div id="bridging" class="section active">
+        <h2>Bridging</h2>
+        <p>Connect prior knowledge to the new topic here. Upload icons or relevant pictures to build context.</p>
+        <div class="upload-area">
+            <p>Upload Image</p>
+            <button class="btn" onclick="triggerUpload('bridging-preview')">Choose File</button>
+        </div>
+        <div id="bridging-preview" class="preview-container"></div>
+    </div>
+
+    <!-- SLO Tab -->
+    <div id="slo" class="section">
+        <h2>Student Learning Objectives (SLO)</h2>
+        <p>Define the clear objectives for this lesson.</p>
+        <div class="upload-area">
+            <p>Upload Image</p>
+            <button class="btn" onclick="triggerUpload('slo-preview')">Choose File</button>
+        </div>
+        <div id="slo-preview" class="preview-container"></div>
+    </div>
+
+    <!-- Focus Tab -->
+    <div id="focus" class="section">
+        <h2>Focus</h2>
+        <div id="focus-layout">
+            <div class="side-panel">
+                <div class="toolbar">
+                    <button class="btn" onclick="addTextToCanvas()">Add Text</button>
+                    <button class="btn btn-danger" onclick="clearCanvas()">Clear</button>
+                </div>
+                <div class="upload-area">
+                    <p>Add Image to Canvas</p>
+                    <button class="btn" onclick="triggerUpload('focus-canvas')">Upload & Crop</button>
+                </div>
+                <p style="font-size: 0.9em; color: #666; margin-top: 10px;">
+                    Upload images to crop them, then they will appear on the canvas. You can drag and resize elements on the canvas.
+                </p>
+            </div>
+            <div class="canvas-container-wrapper">
+                <canvas id="focusCanvas" width="800" height="600"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Formative Check Tab -->
+    <div id="formative" class="section">
+        <h2>Formative Check</h2>
+        <p>Quizzes or assessments related to the lesson.</p>
+        <div class="a4-container">
+            <div class="a4-content" id="formative-content">
+                <p style="text-align: center; color: #999;">A4 Space</p>
+                <div id="formative-preview" class="preview-container"></div>
+            </div>
+        </div>
+        <div class="upload-area">
+            <p>Upload Assessment Image</p>
+            <button class="btn" onclick="triggerUpload('formative-preview')">Choose File</button>
+        </div>
+    </div>
+
+    <!-- Thrive Tab -->
+    <div id="thrive" class="section">
+        <h2>Thrive</h2>
+        <p>Activities for students to thrive (creative tasks, extra practice).</p>
+        <div class="a4-container">
+            <div class="a4-content" id="thrive-content">
+                <p style="text-align: center; color: #999;">A4 Space</p>
+                <div id="thrive-preview" class="preview-container"></div>
+            </div>
+        </div>
+        <div class="upload-area">
+            <p>Upload Activity Image</p>
+            <button class="btn" onclick="triggerUpload('thrive-preview')">Choose File</button>
+        </div>
+    </div>
+
+    <!-- Interactive Worksheet Tab -->
+    <div id="worksheet" class="section">
+        <h2>Interactive Worksheet</h2>
+
+        <div class="worksheet-item">
+            <label>1. What does the 'B' in B-LIFFT stand for?</label>
+            <input type="radio" name="q1" value="wrong"> Building<br>
+            <input type="radio" name="q1" value="correct"> Bridging<br>
+            <input type="radio" name="q1" value="wrong"> Boring<br>
+            <div id="fb-q1" class="feedback"></div>
+        </div>
+
+        <div class="worksheet-item">
+            <label>2. The Focus tab includes a __________ area.</label>
+            <input type="text" id="q2" placeholder="Type your answer...">
+            <div id="fb-q2" class="feedback"></div>
+        </div>
+
+        <div class="worksheet-item">
+            <label>3. True or False: The Formative Check is for grading only.</label>
+            <select id="q3">
+                <option value="">Select...</option>
+                <option value="true">True</option>
+                <option value="false">False</option>
+            </select>
+            <div id="fb-q3" class="feedback"></div>
+        </div>
+
+        <button class="btn btn-success" onclick="checkWorksheet()">Submit Answers</button>
+        <button class="btn" onclick="resetWorksheet()">Reset</button>
+    </div>
+</main>
+
+<!-- Hidden File Input -->
+<input type="file" id="fileInput" accept="image/*">
+
+<!-- Crop Modal -->
+<div id="crop-modal">
+    <div class="modal-content">
+        <h2>Crop Image</h2>
+        <div class="crop-area">
+            <img id="crop-image" src="" alt="Image to crop">
+        </div>
+        <div class="modal-footer">
+            <button class="btn" onclick="closeModal()">Cancel</button>
+            <button class="btn btn-success" onclick="confirmCrop()">Crop & Use</button>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+
+<script>
+    // --- Global State ---
+    let currentUploadTarget = null;
+    let cropper = null;
+    let canvas = null;
+
+    // --- Tab Switching ---
+    function openTab(tabId) {
+        // Hide all sections
+        document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
+        // Deactivate all buttons
+        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+
+        // Show target
+        document.getElementById(tabId).classList.add('active');
+        // Activate button
+        const btn = Array.from(document.querySelectorAll('.tab-btn')).find(b => b.getAttribute('onclick').includes(tabId));
+        if(btn) btn.classList.add('active');
+
+        // Resize canvas if needed when becoming visible
+        if(tabId === 'focus' && canvas) {
+            canvas.requestRenderAll();
+        }
+    }
+
+    // --- Image Upload & Crop ---
+    const fileInput = document.getElementById('fileInput');
+    const modal = document.getElementById('crop-modal');
+    const cropImg = document.getElementById('crop-image');
+
+    function triggerUpload(targetId) {
+        currentUploadTarget = targetId;
+        fileInput.value = ''; // Reset
+        fileInput.click();
+    }
+
+    fileInput.addEventListener('change', function(e) {
+        if (e.target.files && e.target.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                cropImg.src = evt.target.result;
+                modal.style.display = "block";
+
+                // Init Cropper
+                if(cropper) cropper.destroy();
+                cropper = new Cropper(cropImg, {
+                    viewMode: 1,
+                    autoCropArea: 0.8,
+                });
+            };
+            reader.readAsDataURL(e.target.files[0]);
+        }
+    });
+
+    function closeModal() {
+        modal.style.display = "none";
+        if(cropper) {
+            cropper.destroy();
+            cropper = null;
+        }
+        currentUploadTarget = null;
+    }
+
+    function confirmCrop() {
+        if (!cropper) return;
+
+        // Get cropped canvas
+        const croppedCanvas = cropper.getCroppedCanvas({
+            maxWidth: 1024,
+            maxHeight: 1024
+        });
+
+        if (currentUploadTarget === 'focus-canvas') {
+            // Add to Fabric Canvas
+            const imgData = croppedCanvas.toDataURL();
+            fabric.Image.fromURL(imgData, function(img) {
+                img.scaleToWidth(200); // Default size
+                canvas.add(img);
+                canvas.centerObject(img);
+                canvas.setActiveObject(img);
+            });
+        } else {
+            // Add to Preview Div
+            const targetDiv = document.getElementById(currentUploadTarget);
+            const img = document.createElement('img');
+            img.src = croppedCanvas.toDataURL();
+            img.className = 'preview-img';
+            targetDiv.appendChild(img);
+        }
+
+        closeModal();
+    }
+
+    // --- Focus Canvas ---
+    window.onload = function() {
+        canvas = new fabric.Canvas('focusCanvas', {
+            backgroundColor: '#fff',
+            selection: true
+        });
+
+        // Resize canvas to fit wrapper if needed (simplified for now fixed size)
+        // Responsive canvas can be complex, sticking to 800x600 logical size
+    };
+
+    function addTextToCanvas() {
+        const text = new fabric.IText('Double click to edit', {
+            left: 50,
+            top: 50,
+            fontFamily: 'Helvetica',
+            fill: '#333',
+            fontSize: 20
+        });
+        canvas.add(text);
+        canvas.setActiveObject(text);
+    }
+
+    function clearCanvas() {
+        if(confirm("Clear the entire canvas?")) {
+            canvas.clear();
+            canvas.setBackgroundColor('#fff', canvas.renderAll.bind(canvas));
+        }
+    }
+
+    // --- Interactive Worksheet ---
+    function checkWorksheet() {
+        let score = 0;
+
+        // Q1
+        const q1 = document.querySelector('input[name="q1"]:checked');
+        const fb1 = document.getElementById('fb-q1');
+        if(q1 && q1.value === 'correct') {
+            fb1.textContent = "Correct!";
+            fb1.className = "feedback correct";
+            score++;
+        } else {
+            fb1.textContent = "Incorrect. Try again.";
+            fb1.className = "feedback incorrect";
+        }
+
+        // Q2
+        const q2 = document.getElementById('q2').value.trim().toLowerCase();
+        const fb2 = document.getElementById('fb-q2');
+        if(q2.includes('canvas')) {
+            fb2.textContent = "Correct!";
+            fb2.className = "feedback correct";
+            score++;
+        } else {
+            fb2.textContent = "Incorrect. Hint: It's used for drawing or displaying content.";
+            fb2.className = "feedback incorrect";
+        }
+
+        // Q3
+        const q3 = document.getElementById('q3').value;
+        const fb3 = document.getElementById('fb-q3');
+        if(q3 === 'false') {
+            fb3.textContent = "Correct! It helps check understanding.";
+            fb3.className = "feedback correct";
+            score++;
+        } else {
+            fb3.textContent = "Incorrect.";
+            fb3.className = "feedback incorrect";
+        }
+    }
+
+    function resetWorksheet() {
+        document.querySelectorAll('input[type="radio"]').forEach(el => el.checked = false);
+        document.getElementById('q2').value = "";
+        document.getElementById('q3').value = "";
+        document.querySelectorAll('.feedback').forEach(el => el.textContent = "");
+    }
+
+</script>
+
+</body>
+</html>
